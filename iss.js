@@ -1,7 +1,7 @@
 const request = require('request');
 const ipurl = 'https://api.ipify.org?format=json';
 const geourl = 'https://api.freegeoip.app/json/';
-const fetchMyIP = function(callback) {
+const fetchMyIP = function (callback) {
   request(ipurl, (error, response, data) => {
     if (error) {
       callback(error, null);
@@ -23,7 +23,7 @@ const fetchMyIP = function(callback) {
 };
 
 
-const fetchCoordsByIP = function(ip, callback) {
+const fetchCoordsByIP = function (ip, callback) {
   request(geourl + `/${ip}?apikey=f947d540-3def-11ec-b8af-5d57dd876d90`, (error, response, data) => {
     if (error) {
       callback(error, null);
@@ -45,7 +45,7 @@ const fetchCoordsByIP = function(ip, callback) {
 };
 
 
-const fetchISSFlyOverTimes = function(coords, callback) {
+const fetchISSFlyOverTimes = function (coords, callback) {
   request(`https://iss-pass.herokuapp.com/json/?lat=${coords.latitude}&lon=${coords.longitude}`, (error, response, data) => {
     if (error) {
       callback(error, null);
@@ -58,11 +58,34 @@ const fetchISSFlyOverTimes = function(coords, callback) {
     }
     if (error === null && response.statusCode === 200) {
       const coord = JSON.parse(data);
-      callback(error,coord.response);
+      callback(error, coord.response);
     }
   });
 };
 
+const nextISSTimesForMyLocation = function (callback) {
+  fetchMyIP((error, ip) => {
+    if (error) {
+      console.log("It didn't work!", error);
+      return;
+    }
+    fetchCoordsByIP(ip, (error, coordinates) => {
+      if (error) {
+        console.log("It didn't work!", error);
+        return;
+      }
+      fetchISSFlyOverTimes(coordinates, (error, flybytime) => {
+        if (error) {
+          console.log("It didn't work!", error);
+          return;
+        }
+        for (fly of flybytime) {
+          callback(`Next pass at ${Date(fly.risetime)} for ${fly.duration} seconds!`)
+        }
+      })
+    });
+  })
+}
 
 
-module.exports = { fetchMyIP, fetchCoordsByIP, fetchISSFlyOverTimes };
+module.exports = { nextISSTimesForMyLocation };
